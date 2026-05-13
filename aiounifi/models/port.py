@@ -1,7 +1,46 @@
 """Device port implementation."""
 
+from __future__ import annotations
+
+from enum import StrEnum
+import logging
+from typing import cast
+
 from .api import ApiItem
 from .device import TypedDevicePortTable
+
+LOGGER = logging.getLogger(__name__)
+
+
+class PortMedia(StrEnum):
+    """Enum for network port media types."""
+
+    GIGABIT = "GE"
+    FAST = "FE"
+    SFP = "SFP"
+    SFP_PLUS = "SFP+"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def _missing_(cls, value: object) -> PortMedia:
+        """Set default enum member if an unknown media type is provided."""
+        LOGGER.warning("Unsupported port media %s, using UNKNOWN", value)
+        return cls.UNKNOWN
+
+
+class PortPoEMode(StrEnum):
+    """Enum for Power over Ethernet modes."""
+
+    AUTO = "auto"
+    OFF = "off"
+    PASSTHROUGH = "passthrough"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def _missing_(cls, value: object) -> PortPoEMode:
+        """Set default enum member if an unknown PoE mode is provided."""
+        LOGGER.warning("Unsupported port PoE mode %s, using UNKNOWN", value)
+        return cls.UNKNOWN
 
 
 class Port(ApiItem):
@@ -15,14 +54,19 @@ class Port(ApiItem):
         return self.raw.get("ifname")
 
     @property
-    def media(self) -> str | None:
+    def media(self) -> PortMedia:
         """Media port is connected to."""
-        return self.raw.get("media")
+        return PortMedia(self.raw.get("media", "unknown"))
 
     @property
     def name(self) -> str:
         """Port name."""
-        return self.raw["name"]
+        if (name := self.raw["name"]) == "":
+            # Unifi controller allows to set an empty port name, but it
+            # shows up as "Port N" consistently across UI. We mirror the
+            # behavior, as empty name is rarely visually helpful.
+            return f"Port {self.port_idx}"
+        return name
 
     @property
     def port_idx(self) -> int | None:
@@ -52,9 +96,9 @@ class Port(ApiItem):
         return self.raw.get("poe_enable")
 
     @property
-    def poe_mode(self) -> str | None:
-        """Is PoE auto, pasv24, passthrough, off or None."""
-        return self.raw.get("poe_mode")
+    def poe_mode(self) -> PortPoEMode:
+        """PoE mode (auto, passthrough, off, or unknown)."""
+        return PortPoEMode(self.raw.get("poe_mode", "unknown"))
 
     @property
     def poe_power(self) -> str | None:
@@ -77,9 +121,34 @@ class Port(ApiItem):
         return self.raw.get("port_poe")
 
     @property
+    def rx_bytes(self) -> int:
+        """Bytes received."""
+        return self.raw.get("rx_bytes", 0)
+
+    @property
+    def rx_bytes_r(self) -> int:
+        """Bytes recently received."""
+        return cast(int, self.raw.get("rx_bytes-r", 0))
+
+    @property
+    def tx_bytes(self) -> int:
+        """Bytes transferred."""
+        return self.raw.get("tx_bytes", 0)
+
+    @property
+    def tx_bytes_r(self) -> int:
+        """Bytes recently transferred."""
+        return cast(int, self.raw.get("tx_bytes-r", 0))
+
+    @property
     def up(self) -> bool | None:
         """Is port up."""
         return self.raw.get("up")
+
+    @property
+    def enabled(self) -> bool | None:
+        """Is port enabled."""
+        return self.raw.get("enable")
 
     def __repr__(self) -> str:
         """Return the representation."""

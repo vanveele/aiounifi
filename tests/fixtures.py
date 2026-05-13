@@ -1039,6 +1039,22 @@ GATEWAY_USG3 = {
         }
     },
     "state": 1,
+    "storage": [
+        {
+            "mount_point": "/persistent",
+            "name": "Backup",
+            "size": 2040373248,
+            "type": "eMMC",
+            "used": 148353024,
+        },
+        {
+            "mount_point": "/tmp",
+            "name": "Temporary",
+            "size": 1073741824,
+            "type": "other",
+            "used": 90112,
+        },
+    ],
     "sys_stats": {
         "loadavg_1": "0.03",
         "loadavg_15": "0.08",
@@ -1049,6 +1065,11 @@ GATEWAY_USG3 = {
     },
     "syslog_key": "3456789098098769876543",
     "system-stats": {"cpu": "0", "mem": "25", "uptime": "3971505"},
+    "temperatures": [
+        {"name": "CPU", "type": "cpu", "value": 66.0},
+        {"name": "Local", "type": "board", "value": 48.75},
+        {"name": "PHY", "type": "board", "value": 50.25},
+    ],
     "two_phase_adopt": False,
     "tx_bytes": 1107294012155,
     "type": "ugw",
@@ -1093,6 +1114,41 @@ GATEWAY_USG3 = {
         "xput_up": 0.0,
     },
     "uptime": 3971869,
+    "uptime_stats": {
+        "WAN": {
+            "monitors": [
+                {
+                    "availability": 100.0,
+                    "latency_average": 5,
+                    "target": "www.microsoft.com",
+                    "type": "icmp",
+                },
+                {
+                    "availability": 100.0,
+                    "latency_average": 7,
+                    "target": "google.com",
+                    "type": "icmp",
+                },
+                {
+                    "availability": 100.0,
+                    "latency_average": 5,
+                    "target": "1.1.1.1",
+                    "type": "icmp",
+                },
+            ]
+        },
+        "WAN2": {
+            "monitors": [
+                {
+                    "availability": 0.0,
+                    "target": "www.microsoft.com",
+                    "type": "icmp",
+                },
+                {"availability": 0.0, "target": "google.com", "type": "icmp"},
+                {"availability": 0.0, "target": "1.1.1.1", "type": "icmp"},
+            ]
+        },
+    },
     "user-num_sta": 20,
     "usg_caps": 786431,
     "version": "4.4.44.5213844",
@@ -1123,6 +1179,38 @@ GATEWAY_USG3 = {
         "type": "wire",
         "up": True,
     },
+    "wan2": {
+        "bytes-r": 1024,
+        "dns": ["8.8.8.8"],
+        "enable": True,
+        "full_duplex": True,
+        "gateway": "10.0.0.1",
+        "ifname": "eth1",
+        "ip": "10.0.0.2",
+        "mac": "78:8a:20:33:44:56",
+        "max_speed": 1000,
+        "name": "wan2",
+        "netmask": "255.255.255.0",
+        "rx_bytes": 500000000,
+        "rx_bytes-r": 512,
+        "rx_dropped": 0,
+        "rx_errors": 0,
+        "rx_multicast": 0,
+        "rx_packets": 1000000,
+        "speed": 1000,
+        "tx_bytes": 200000000,
+        "tx_bytes-r": 512,
+        "tx_dropped": 0,
+        "tx_errors": 0,
+        "tx_packets": 500000,
+        "type": "wire",
+        "up": True,
+    },
+    "last_wan_status": {
+        "WAN": "online",
+        "WAN2": "online",
+    },
+    "last_wan_ip": "1.2.3.4",
     "x_aes_gcm": True,
     "x_authkey": "345678976545678",
     "x_has_ssh_hostkey": True,
@@ -1277,7 +1365,7 @@ SWITCH_16_PORT_POE = {
             "lldp_table": [],
             "masked": False,
             "media": "GE",
-            "name": "Port 2",
+            "name": "",
             "op_mode": "switch",
             "poe_caps": 7,
             "poe_class": "Unknown",
@@ -3632,8 +3720,7 @@ PDU_PRO = {
     "device_id": "61e4a1e60bbb2d53aeb430ea",
     "dhcp_server_table": [],
     "disconnection_reason": (
-        "MISSED_INFORM, last_seen '1643657061', "
-        "considered_lost '1643657117', state: 1"
+        "MISSED_INFORM, last_seen '1643657061', considered_lost '1643657117', state: 1"
     ),
     "displayable_version": "5.76.7",
     "dot1x_portctrl_enabled": False,
@@ -4110,6 +4197,44 @@ DPI_GROUPS = [
     },
 ]
 
+VOUCHERS = [
+    {
+        "_id": "657e370a4543a555901865c7",
+        "admin_name": "Admin",
+        "code": "7470075124",
+        "create_time": 1638342818,
+        "duration": 5184000,
+        "end_time": 1949382832,
+        "for_hotspot": False,
+        "note": "auto-generated",
+        "qos_overwrite": False,
+        "quota": 0,
+        "site_id": "5a32aa4ee4b0412345678910",
+        "start_time": 1638342832,
+        "status": "USED_MULTIPLE",
+        "status_expires": 244679302,
+        "used": 2,
+    },
+    {
+        "_id": "61facea3873fdb075ce28d71",
+        "admin_name": "Admin",
+        "code": "4470344703",
+        "create_time": 1643826851,
+        "duration": 480,
+        "for_hotspot": False,
+        "note": None,
+        "qos_overwrite": True,
+        "qos_rate_max_down": 5000,
+        "qos_rate_max_up": 2000,
+        "qos_usage_quota": 1000,
+        "quota": 1,
+        "site_id": "5a32aa4ee4b0412345678910",
+        "status": "VALID_ONE",
+        "status_expires": 0,
+        "used": 0,
+    },
+]
+
 WLANS = [
     {
         "_id": "012345678910111213141516",
@@ -4156,6 +4281,7 @@ WLANS = [
         "enabled": False,
         "group_rekey": 3600,
         "is_guest": True,
+        "hide_ssid": True,
         "mac_filter_enabled": False,
         "mac_filter_list": [],
         "mac_filter_policy": "allow",
@@ -4349,8 +4475,8 @@ EVENT_WIRELESS_CLIENT_CONNECTED = {
             "hostname": WIRELESS_CLIENT["hostname"],
             "key": "EVT_WU_Connected",
             "msg": (
-                f'User[{WIRELESS_CLIENT["mac"]}] has connected '
-                f'to AP[{WIRELESS_CLIENT["ap_mac"]}] with SSID '
+                f"User[{WIRELESS_CLIENT['mac']}] has connected "
+                f"to AP[{WIRELESS_CLIENT['ap_mac']}] with SSID "
                 f'"{WIRELESS_CLIENT["essid"]}" on "channel '
                 f'{WIRELESS_CLIENT["channel"]}({WIRELESS_CLIENT["radio"]})"'
             ),
@@ -4376,9 +4502,9 @@ EVENT_WIRELESS_CLIENT_DISCONNECTED = {
             "hostname": WIRELESS_CLIENT["hostname"],
             "key": "EVT_WU_Disconnected",
             "msg": (
-                f'User[{WIRELESS_CLIENT["mac"]}] disconnected from '
+                f"User[{WIRELESS_CLIENT['mac']}] disconnected from "
                 f'"{WIRELESS_CLIENT["essid"]}" (7m 47s connected, 448.28K bytes, '
-                f'last AP[{WIRELESS_CLIENT["ap_mac"]}])'
+                f"last AP[{WIRELESS_CLIENT['ap_mac']}])"
             ),
             "site_id": WIRELESS_CLIENT["site_id"],
             "ssid": WIRELESS_CLIENT["essid"],
@@ -4396,7 +4522,7 @@ EVENT_WIRELESS_CLIENT_WIRED_CONNECTED = {
             "_id": "5ea3304330c49e00f90dcc35",
             "datetime": "2020-04-24T18:30:22Z",
             "key": "EVT_LU_Connected",
-            "msg": f'User{[WIRELESS_CLIENT["mac"]]} has connected to LAN',
+            "msg": f"User{[WIRELESS_CLIENT['mac']]} has connected to LAN",
             "network": "LAN",
             "site_id": WIRELESS_CLIENT["site_id"],
             "subsystem": "lan",
@@ -4436,7 +4562,7 @@ EVENT_SWITCH_16_CONNECTED = {
             "_id": "5eae82572ab79c00f9d39b38",
             "datetime": "2020-05-03T08:35:35Z",
             "key": "EVT_SW_Connected",
-            "msg": f'Switch[{SWITCH_16_PORT_POE["mac"]}] was connected',
+            "msg": f"Switch[{SWITCH_16_PORT_POE['mac']}] was connected",
             "site_id": SWITCH_16_PORT_POE["site_id"],
             "subsystem": "lan",
             "sw": SWITCH_16_PORT_POE["mac"],
@@ -4453,7 +4579,7 @@ EVENT_SWITCH_16_RESTARTED_UNKOWN = {
             "_id": "5ea9e37030c49e010363ee0b",
             "datetime": "2020-04-29T20:27:24Z",
             "key": "EVT_SW_RestartedUnknown",
-            "msg": f'Switch[{SWITCH_16_PORT_POE["mac"]}] was restarted',
+            "msg": f"Switch[{SWITCH_16_PORT_POE['mac']}] was restarted",
             "site_id": SWITCH_16_PORT_POE["site_id"],
             "subsystem": "lan",
             "sw": SWITCH_16_PORT_POE["mac"],
@@ -4470,7 +4596,7 @@ EVENT_SWITCH_16_LOST_CONTACT = {
             "_id": "5eae7fe02ab79c00f9d38960",
             "datetime": "2020-05-03T08:25:04Z",
             "key": "EVT_SW_Lost_Contact",
-            "msg": f'Switch[{SWITCH_16_PORT_POE["mac"]}] was disconnected',
+            "msg": f"Switch[{SWITCH_16_PORT_POE['mac']}] was disconnected",
             "site_id": SWITCH_16_PORT_POE["site_id"],
             "subsystem": "lan",
             "sw": SWITCH_16_PORT_POE["mac"],
@@ -4488,7 +4614,7 @@ EVENT_SWITCH_16_UPGRADED = {
             "datetime": "2020-05-09T20:06:37Z",
             "key": "EVT_SW_Upgraded",
             "msg": (
-                f'Switch[{SWITCH_16_PORT_POE["mac"]}] was upgraded from '
+                f"Switch[{SWITCH_16_PORT_POE['mac']}] was upgraded from "
                 '"4.0.66.10832" to "4.3.13.11253"'
             ),
             "site_id": SWITCH_16_PORT_POE["site_id"],
@@ -4696,4 +4822,64 @@ TRAFFIC_ROUTES = [
             {"network_id": WIRELESS_CLIENT["network_id"], "type": "NETWORK"}
         ],
     },
+]
+
+FIREWALL_ZONES = [
+    {
+        "_id": "678ccc26e3849d2932432e26",
+        "name": "LAN",
+        "attr_no_edit": True,
+        "default_zone": True,
+        "network_ids": ["678ccc26e3849d2932432e20"],
+        "zone_key": "lan",
+    },
+    {
+        "_id": "678c63bc2d97692f08adcdfb",
+        "name": "WAN",
+        "attr_no_edit": True,
+        "default_zone": True,
+        "network_ids": ["678c63bc2d97692f08adcdf5"],
+        "zone_key": "wan",
+    },
+]
+
+FIREWALL_POLICIES = [
+    {
+        "_id": "678ceb9fe3849d293243405c",
+        "action": "ALLOW",
+        "connection_state_type": "ALL",
+        "connection_states": [],
+        "create_allow_respond": True,
+        "description": "",
+        "destination": {
+            "match_opposite_ports": False,
+            "matching_target": "ANY",
+            "port_matching_type": "ANY",
+            "zone_id": "678ccc26e3849d2932432e26",
+        },
+        "enabled": True,
+        "icmp_typename": "ANY",
+        "icmp_v6_typename": "ANY",
+        "index": 10000,
+        "ip_version": "BOTH",
+        "logging": False,
+        "match_ip_sec": False,
+        "match_opposite_protocol": False,
+        "name": "Allow internal to IoT",
+        "predefined": False,
+        "protocol": "all",
+        "schedule": {
+            "mode": "EVERY_DAY",
+            "repeat_on_days": [],
+            "time_all_day": False,
+            "time_range_end": "12:00",
+            "time_range_start": "09:00",
+        },
+        "source": {
+            "match_opposite_ports": False,
+            "matching_target": "ANY",
+            "port_matching_type": "ANY",
+            "zone_id": "678c63bc2d97692f08adcdfa",
+        },
+    }
 ]

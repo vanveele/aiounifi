@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import io
-from typing import NotRequired, Self, TypedDict
+from typing import Any, NotRequired, Self, TypedDict
 
 import segno.helpers
 
@@ -20,6 +20,7 @@ class TypedWlan(TypedDict):
     dtim_ng: int
     enabled: bool
     group_rekey: int
+    hide_ssid: NotRequired[bool]
     is_guest: NotRequired[bool]
     mac_filter_enabled: NotRequired[bool]
     mac_filter_list: list[str]
@@ -90,12 +91,31 @@ class WlanEnableRequest(ApiRequest):
 
 
 def wlan_qr_code(
-    name: str, password: str | None, kind: str = "png", scale: int = 4
+    name: str,
+    password: str | None,
+    kind: str = "png",
+    scale: int = 4,
+    hidden: bool = False,
+    dark: str | None = None,
+    light: str | None = None,
+    border: int | None = None,
 ) -> bytes:
-    """Generate WLAN QR code."""
+    """Generate WLAN QR code.
+
+    Optional styling parameters are passed to segno serializer.
+    """
     buffer = io.BytesIO()
-    qr_code = segno.helpers.make_wifi(ssid=name, password=password, security="WPA")
-    qr_code.save(out=buffer, kind=kind, scale=scale)
+    qr_code = segno.helpers.make_wifi(
+        ssid=name, password=password, security="WPA", hidden=hidden
+    )
+    save_kwargs: dict[str, Any] = {"kind": kind, "scale": scale}
+    if dark is not None:
+        save_kwargs["dark"] = dark
+    if light is not None:
+        save_kwargs["light"] = light
+    if border is not None:
+        save_kwargs["border"] = border
+    qr_code.save(out=buffer, **save_kwargs)
     return buffer.getvalue()
 
 
@@ -143,6 +163,11 @@ class Wlan(ApiItem):
     def group_rekey(self) -> int:
         """Group rekey."""
         return self.raw["group_rekey"]
+
+    @property
+    def hide_ssid(self) -> bool | None:
+        """Hide SSID."""
+        return self.raw.get("hide_ssid")
 
     @property
     def is_guest(self) -> bool | None:

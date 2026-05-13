@@ -39,6 +39,7 @@ class EventKey(enum.Enum):
 
     DREAM_MACHINE_CONNECTED = "EVT_DM_Connected"
     DREAM_MACHINE_LOST_CONTACT = "EVT_DM_Lost_Contact"
+    DREAM_MACHINE_UPGRADED = "EVT_DM_Upgraded"
 
     GATEWAY_ADOPTED = "EVT_GW_Adopted"
     GATEWAY_AUTO_READOPTED = "EVT_GW_AutoReadopted"
@@ -60,13 +61,16 @@ class EventKey(enum.Enum):
     SWITCH_DISCOVERED_PENDING = "EVT_SW_DiscoveredPending"
     SWITCH_LOST_CONTACT = "EVT_SW_Lost_Contact"
     SWITCH_OVERHEAT = "EVT_SW_Overheat"
-    SWITCH_POE_OVERLOAD = "EVT_SW_POE_Overload"
+    SWITCH_POE_OVERLOAD = "EVT_SW_PoeOverload"
     SWITCH_POE_DISCONNECT = "EVT_SW_PoeDisconnect"
     SWITCH_RESTARTED = "EVT_SW_Restarted"
     SWITCH_RESTARTED_UNKNOWN = "EVT_SW_RestartedUnknown"
     SWITCH_STP_PORT_BLOCKING = "EVT_SW_StpPortBlocking"
     SWITCH_UPGRADE_SCHEDULED = "EVT_SW_UpgradeScheduled"
     SWITCH_UPGRADED = "EVT_SW_Upgraded"
+
+    VOUCHER_CREATED = "EVT_AD_VoucherCreated"
+    VOUCHER_DELETED = "EVT_AD_VoucherDeleted"
 
     WIRED_CLIENT_CONNECTED = "EVT_LU_Connected"
     WIRED_CLIENT_DISCONNECTED = "EVT_LU_Disconnected"
@@ -98,8 +102,11 @@ class EventKey(enum.Enum):
     AD_LOGIN = "EVT_AD_Login"
     AD_SCHEDULE_UPGRADE_FAILED_NOT_FOUND = "EVT_AD_ScheduleUpgradeFailedNotFound"
 
+    HOT_SPOT_AUTHED_BY_NO_AUTH = "EVT_HS_AuthedByNoAuth"
     HOT_SPOT_AUTHED_BY_PASSWORD = "EVT_HS_AuthedByPassword"
     HOT_SPOT_VOUCHER_USED = "EVT_HS_VoucherUsed"
+
+    USP_RPS_POWER_DENIED_BY_PSU_OVERLOAD = "EVT_USP_RpsPowerDeniedByPsuOverload"
 
     UNKNOWN = "unknown"
 

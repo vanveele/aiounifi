@@ -136,6 +136,7 @@ class TypedDevicePortOverrides(TypedDict, total=False):
 
     poe_mode: str
     port_idx: int
+    port_security_enabled: bool
     portconf_id: str
 
 
@@ -300,6 +301,14 @@ class TypedDeviceSystemStats(TypedDict):
     uptime: str
 
 
+class TypedDeviceTemperature(TypedDict):
+    """Device temperature type definition."""
+
+    name: str
+    type: str
+    value: float
+
+
 class TypedDeviceUplink(TypedDict):
     """Device uplink type definition."""
 
@@ -330,6 +339,28 @@ class TypedDeviceUplink(TypedDict):
     uplink_remote_port: int
 
 
+class TypedDeviceUptimeStatsWanMonitor(TypedDict):
+    """Device uptime stats wan monitor type definition."""
+
+    availability: float
+    latency_average: NotRequired[int]
+    target: str
+    type: str
+
+
+class TypedDeviceUptimeStatsWan(TypedDict):
+    """Device uptime stats wan type definition."""
+
+    monitors: list[TypedDeviceUptimeStatsWanMonitor]
+
+
+class TypedDeviceUptimeStats(TypedDict):
+    """Device uptime stats type definition."""
+
+    WAN: TypedDeviceUptimeStatsWan
+    WAN2: TypedDeviceUptimeStatsWan
+
+
 class TypedDeviceWlanOverrides(TypedDict):
     """Device wlan overrides type definition."""
 
@@ -351,6 +382,42 @@ class TypedDeviceSpeedtestStatus(TypedDict):
     status_upload: int
     xput_download: float
     xput_upload: float
+
+
+class TypedDeviceWanInterface(TypedDict):
+    """Device WAN interface type definition."""
+
+    ip: str
+    netmask: str
+    up: bool
+    ifname: str
+    mac: str
+    name: str
+    type: str
+    enable: bool
+    speed: int
+    full_duplex: bool
+    latency: NotRequired[int]
+    availability: NotRequired[float]
+    gateway: NotRequired[str]
+    dns: NotRequired[list[str]]
+
+
+class TypedDeviceWanInterfaceSummary(TypedDict, total=False):
+    """Device WAN interface summary type definition."""
+
+    alive: bool
+    ip: str
+
+
+class TypedDeviceStorage(TypedDict):
+    """Device storage type definition."""
+
+    mount_point: str
+    name: str
+    size: int
+    type: str
+    used: int
 
 
 class TypedDevice(TypedDict):
@@ -420,7 +487,7 @@ class TypedDevice(TypedDict):
     lcm_tracker_enabled: bool
     led_override: str
     led_override_color: str
-    led_override_color_brightness: int
+    led_override_color_brightness: NotRequired[int]
     license_state: str
     lldp_table: list[TypedDeviceLldpTable]
     locating: bool
@@ -469,6 +536,7 @@ class TypedDevice(TypedDict):
     start_disconnected_millis: int
     stat: dict  # type: ignore[type-arg]
     state: int
+    storage: list[TypedDeviceStorage] | None
     stp_priority: str
     stp_version: str
     switch_caps: TypedDeviceSwitchCaps
@@ -476,6 +544,7 @@ class TypedDevice(TypedDict):
     sys_stats: TypedDeviceSysStats
     syslog_key: str
     system_stats: TypedDeviceSystemStats
+    temperatures: list[TypedDeviceTemperature] | None
     two_phase_adopt: bool
     tx_bytes: int
     tx_bytes_d: int
@@ -489,6 +558,7 @@ class TypedDevice(TypedDict):
     uplink_depth: int
     uplink_table: list  # type: ignore[type-arg]
     uptime: int
+    uptime_stats: TypedDeviceUptimeStats | None
     user_num_sta: int
     user_wlan_num_sta: int
     usg_caps: int
@@ -508,6 +578,55 @@ class TypedDevice(TypedDict):
     x_inform_authkey: str
     x_ssh_hostkey_fingerprint: str
     x_vwirekey: str
+
+    wan1: NotRequired[TypedDeviceWanInterface]
+    wan2: NotRequired[TypedDeviceWanInterface]
+    wan3: NotRequired[TypedDeviceWanInterface]
+    wan4: NotRequired[TypedDeviceWanInterface]
+    wan5: NotRequired[TypedDeviceWanInterface]
+    wan6: NotRequired[TypedDeviceWanInterface]
+    last_wan_status: NotRequired[dict[str, str]]
+    last_wan_interfaces: NotRequired[dict[str, TypedDeviceWanInterfaceSummary]]
+    last_wan_ip: NotRequired[str]
+
+
+class DeviceType(enum.StrEnum):
+    """Enum for UniFi device types."""
+
+    ACCESS_POINT = "uap"
+    APPLICATION_SERVER = "uas"
+    BUILDING_TO_BUILDING_BRIDGE = "ubb"
+    CLOUD_GATEWAY = "ucg"
+    CLOUD_KEY = "uck"
+    DREAM_MACHINE = "udm"
+    SECURITY_GATEWAY = "ugw"
+    PHONE = "uph"
+    SWITCH = "usw"
+    NEXTGEN_GATEWAY = "uxg"
+
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def _missing_(cls, value: object) -> DeviceType:
+        """Set default enum member if an unknown value is provided."""
+        LOGGER.warning("Unsupported device type %s %s", value, cls)
+        return DeviceType.UNKNOWN
+
+
+class WifiBand(enum.StrEnum):
+    """Enum for WiFi bands."""
+
+    BAND_2_4GHZ = "ng"  # 802.11n on 2.4GHz
+    BAND_5GHZ = "na"  # 802.11a/n/ac/ax on 5GHz
+    BAND_6GHZ = "6e"  # 802.11ax on 6GHz
+
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def _missing_(cls, value: object) -> WifiBand:
+        """Set default enum member if an unknown band is provided."""
+        LOGGER.warning("Unsupported WiFi band %s, using UNKNOWN", value)
+        return cls.UNKNOWN
 
 
 class DeviceState(enum.IntEnum):
@@ -604,6 +723,25 @@ class DeviceUpgradeRequest(ApiRequest):
                 "cmd": "upgrade",
                 "mac": mac,
             },
+        )
+
+
+@dataclass
+class DeviceLocateRequest(ApiRequest):
+    """Request object for device locate mode."""
+
+    @classmethod
+    def create(cls, mac: str, locate: bool) -> Self:
+        """Enable or disable device locate mode."""
+        if locate:
+            data = {"cmd": "set-locate", "mac": mac}
+        else:
+            data = {"cmd": "unset-locate", "mac": mac}
+
+        return cls(
+            method="post",
+            path="/cmd/devmgr",
+            data=data,
         )
 
 
@@ -718,6 +856,59 @@ class DeviceSetPoePortModeRequest(ApiRequest):
                 continue
 
             port_override = {"port_idx": port_idx, "poe_mode": mode}
+            if portconf_id := device.port_table[port_idx - 1].get("portconf_id"):
+                port_override["portconf_id"] = portconf_id
+            port_overrides.append(port_override)
+
+        return cls(
+            method="put",
+            path=f"/rest/device/{device.id}",
+            data={"port_overrides": port_overrides},
+        )
+
+
+@dataclass
+class DeviceSetPortEnabledRequest(ApiRequest):
+    """Request object for setting port enabled state."""
+
+    @classmethod
+    def create(
+        cls,
+        device: Device,
+        port_idx: int | None = None,
+        enabled: bool | None = None,
+        targets: list[tuple[int, bool]] | None = None,
+    ) -> Self:
+        """Create device set port enabled state request.
+
+        True:  port is enabled.
+        False: port is disabled.
+        Make sure to not overwrite any existing configs.
+        """
+        overrides: list[tuple[int, bool]] = []
+        if port_idx is not None and enabled is not None:
+            overrides.append((port_idx, enabled))
+        elif targets is not None:
+            overrides = targets
+        else:
+            raise AttributeError
+
+        port_overrides = deepcopy(device.port_overrides)
+
+        for override in overrides:
+            port_idx, enabled = override
+
+            existing_override = False
+            for port_override in port_overrides:
+                if port_idx == port_override.get("port_idx"):
+                    port_override["port_security_enabled"] = not enabled
+                    existing_override = True
+                    break
+
+            if existing_override:
+                continue
+
+            port_override = {"port_idx": port_idx, "port_security_enabled": not enabled}
             if portconf_id := device.port_table[port_idx - 1].get("portconf_id"):
                 port_override["portconf_id"] = portconf_id
             port_overrides.append(port_override)
@@ -846,7 +1037,15 @@ class Device(ApiItem):
     @property
     def led_override_color_brightness(self) -> int | None:
         """LED override color brightness."""
-        return self.raw.get("led_override_color_brightness")
+        if (value := self.raw.get("led_override_color_brightness")) is not None:
+            # UniFi API has been observed to return string values for this field.
+            return int(value)
+        return None
+
+    @property
+    def locating(self) -> bool | None:
+        """Return if device locate mode is enabled."""
+        return self.raw.get("locating")
 
     @property
     def lldp_table(self) -> list[TypedDeviceLldpTable]:
@@ -914,6 +1113,26 @@ class Device(ApiItem):
         return self.raw.get("port_table", [])
 
     @property
+    def radio_table(self) -> list[TypedDeviceRadioTable]:
+        """List of radios with band information."""
+        return self.raw.get("radio_table", [])
+
+    def get_radio_band(self, radio_name: str) -> WifiBand:
+        """Get the WiFi band for a radio by name.
+
+        Args:
+            radio_name: Name of the radio (e.g., 'wifi0', 'wifi1', 'wifi2')
+
+        Returns:
+            WifiBand enum member for the radio, or UNKNOWN if not found.
+
+        """
+        for radio in self.radio_table:
+            if radio.get("name") == radio_name:
+                return WifiBand(radio.get("radio", "unknown"))
+        return WifiBand.UNKNOWN
+
+    @property
     def speedtest_status(self) -> TypedDeviceSpeedtestStatus | None:
         """Speedtest status."""
         if value := self.raw.get("speedtest-status"):
@@ -924,6 +1143,11 @@ class Device(ApiItem):
     def state(self) -> DeviceState:
         """State of device."""
         return DeviceState(self.raw["state"])
+
+    @property
+    def storage(self) -> list[TypedDeviceStorage] | None:
+        """Device storage information."""
+        return self.raw.get("storage")
 
     @property
     def sys_stats(self) -> TypedDeviceSysStats:
@@ -937,9 +1161,14 @@ class Device(ApiItem):
         return (data.get("cpu", ""), data.get("mem", ""), data.get("uptime", ""))
 
     @property
-    def type(self) -> str:
+    def temperatures(self) -> list[TypedDeviceTemperature] | None:
+        """Device temperature sensors."""
+        return self.raw.get("temperatures")
+
+    @property
+    def type(self) -> DeviceType:
         """Type of device."""
-        return self.raw["type"]
+        return DeviceType(self.raw.get("type", "unknown"))
 
     @property
     def version(self) -> str:
@@ -972,6 +1201,11 @@ class Device(ApiItem):
         return self.raw.get("uptime", 0)
 
     @property
+    def uptime_stats(self) -> TypedDeviceUptimeStats | None:
+        """Uptime statistics."""
+        return self.raw.get("uptime_stats")
+
+    @property
     def user_num_sta(self) -> int:
         """Amount of connected clients."""
         value = self.raw.get("user-num_sta")
@@ -984,9 +1218,54 @@ class Device(ApiItem):
         return self.raw.get("wlan_overrides", [])
 
     @property
+    def wan1(self) -> TypedDeviceWanInterface | None:
+        """WAN 1 interface data."""
+        return self.raw.get("wan1")
+
+    @property
+    def wan2(self) -> TypedDeviceWanInterface | None:
+        """WAN 2 interface data."""
+        return self.raw.get("wan2")
+
+    @property
+    def wan3(self) -> TypedDeviceWanInterface | None:
+        """WAN 3 interface data."""
+        return self.raw.get("wan3")
+
+    @property
+    def wan4(self) -> TypedDeviceWanInterface | None:
+        """WAN 4 interface data."""
+        return self.raw.get("wan4")
+
+    @property
+    def wan5(self) -> TypedDeviceWanInterface | None:
+        """WAN 5 interface data."""
+        return self.raw.get("wan5")
+
+    @property
+    def wan6(self) -> TypedDeviceWanInterface | None:
+        """WAN 6 interface data."""
+        return self.raw.get("wan6")
+
+    @property
+    def last_wan_status(self) -> dict[str, str] | None:
+        """Status of all WAN interfaces, e.g. {"WAN": "online", "WAN2": "offline"}."""
+        return self.raw.get("last_wan_status")
+
+    @property
+    def last_wan_ip(self) -> str | None:
+        """IP address of the currently active WAN interface."""
+        return self.raw.get("last_wan_ip")
+
+    @property
     def supports_led_ring(self) -> bool:
         """Check if the hardware supports an LED ring based on the second bit of `hw_caps`."""
         return bool(self.hw_caps & HardwareCapability.LED_RING)
+
+    @property
+    def supports_locating(self) -> bool:
+        """Check if the device reports locate capability."""
+        return "locating" in self.raw
 
     def __repr__(self) -> str:
         """Return the representation."""

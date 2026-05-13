@@ -12,14 +12,19 @@ import pytest
 
 from aiounifi.controller import Controller
 from aiounifi.models.device import (
+    Device,
+    DeviceLocateRequest,
     DevicePowerCyclePortRequest,
     DeviceRestartRequest,
     DeviceSetLedStatus,
     DeviceSetOutletCycleEnabledRequest,
     DeviceSetOutletRelayRequest,
     DeviceSetPoePortModeRequest,
+    DeviceSetPortEnabledRequest,
     DeviceState,
+    DeviceType,
     DeviceUpgradeRequest,
+    WifiBand,
 )
 from aiounifi.models.message import MessageKey
 
@@ -55,6 +60,7 @@ test_data = [
             "overheating": False,
             "port_overrides": [],
             "port_table": ACCESS_POINT_AC_PRO["port_table"],
+            "radio_table": ACCESS_POINT_AC_PRO["radio_table"],
             "speedtest_status": None,
             "state": 1,
             "sys_stats": {
@@ -121,6 +127,41 @@ test_data = [
             "uplink": GATEWAY_USG3["uplink"],
             "uplink_depth": None,
             "uptime": 3971869,
+            "uptime_stats": {
+                "WAN": {
+                    "monitors": [
+                        {
+                            "availability": 100.0,
+                            "latency_average": 5,
+                            "target": "www.microsoft.com",
+                            "type": "icmp",
+                        },
+                        {
+                            "availability": 100.0,
+                            "latency_average": 7,
+                            "target": "google.com",
+                            "type": "icmp",
+                        },
+                        {
+                            "availability": 100.0,
+                            "latency_average": 5,
+                            "target": "1.1.1.1",
+                            "type": "icmp",
+                        },
+                    ]
+                },
+                "WAN2": {
+                    "monitors": [
+                        {
+                            "availability": 0.0,
+                            "target": "www.microsoft.com",
+                            "type": "icmp",
+                        },
+                        {"availability": 0.0, "target": "google.com", "type": "icmp"},
+                        {"availability": 0.0, "target": "1.1.1.1", "type": "icmp"},
+                    ]
+                },
+            },
             "user_num_sta": 20,
             "wlan_overrides": [],
             "speedtest_status": GATEWAY_USG3["speedtest-status"],
@@ -681,6 +722,27 @@ test_data = [
             "wlan_overrides": [],
         },
     ),
+    # UniFi API has been observed to return string values for led_override_color_brightness.
+    (
+        [
+            {
+                "mac": "00:11:22:33:44:55",
+                "model": "UP1",
+                "type": "uap",
+                "version": "1.0.0",
+                "led_override": "on",
+                "led_override_color": "#ff0000",
+                "led_override_color_brightness": "75",
+            }
+        ],
+        {
+            "mac": "00:11:22:33:44:55",
+            "model": "UP1",
+            "led_override": "on",
+            "led_override_color": "#ff0000",
+            "led_override_color_brightness": 75,
+        },
+    ),
 ]
 
 
@@ -741,6 +803,16 @@ async def test_device_commands(
             DevicePowerCyclePortRequest,
             {"mac": "0", "port_idx": 1},
             {"mac": "0", "port_idx": 1, "cmd": "power-cycle"},
+        ),
+        (
+            DeviceLocateRequest,
+            {"mac": "0", "locate": True},
+            {"mac": "0", "cmd": "set-locate"},
+        ),
+        (
+            DeviceLocateRequest,
+            {"mac": "0", "locate": False},
+            {"mac": "0", "cmd": "unset-locate"},
         ),
     ],
 )
@@ -946,6 +1018,101 @@ async def test_device_requests(
                 ]
             },
         ),
+        (  # Port enable without existing override
+            [
+                {
+                    "device_id": "01",
+                    "mac": "0",
+                    "port_overrides": [],
+                    "port_table": [
+                        {
+                            "enable": True,
+                            "name": "Port 1",
+                            "port_idx": 1,
+                        },
+                    ],
+                }
+            ],
+            DeviceSetPortEnabledRequest,
+            {"port_idx": 1, "enabled": False},
+            {"port_overrides": [{"port_idx": 1, "port_security_enabled": True}]},
+        ),
+        (  # Port enable with portconf_id without existing override
+            [
+                {
+                    "device_id": "01",
+                    "mac": "0",
+                    "port_overrides": [],
+                    "port_table": [
+                        {
+                            "enable": True,
+                            "name": "Port 1",
+                            "port_idx": 1,
+                            "portconf_id": "123",
+                        },
+                    ],
+                }
+            ],
+            DeviceSetPortEnabledRequest,
+            {"port_idx": 1, "enabled": False},
+            {
+                "port_overrides": [
+                    {"port_idx": 1, "port_security_enabled": True, "portconf_id": "123"}
+                ]
+            },
+        ),
+        (  # Port enable with existing override
+            [
+                {
+                    "device_id": "01",
+                    "mac": "0",
+                    "port_overrides": [{"port_idx": 1, "name": "Office"}],
+                    "port_table": [
+                        {
+                            "enable": True,
+                            "name": "Office",
+                            "port_idx": 1,
+                        },
+                    ],
+                }
+            ],
+            DeviceSetPortEnabledRequest,
+            {"port_idx": 1, "enabled": False},
+            {
+                "port_overrides": [
+                    {"port_idx": 1, "name": "Office", "port_security_enabled": True}
+                ]
+            },
+        ),
+        (  # Port enable multiple ports
+            [
+                {
+                    "device_id": "01",
+                    "mac": "0",
+                    "port_overrides": [{"port_idx": 1, "name": "Office"}],
+                    "port_table": [
+                        {
+                            "enable": True,
+                            "name": "Office",
+                            "port_idx": 1,
+                        },
+                        {
+                            "enable": True,
+                            "name": "Hallway",
+                            "port_idx": 2,
+                        },
+                    ],
+                }
+            ],
+            DeviceSetPortEnabledRequest,
+            {"targets": [(1, False), (2, True)]},
+            {
+                "port_overrides": [
+                    {"port_idx": 1, "port_security_enabled": True, "name": "Office"},
+                    {"port_idx": 2, "port_security_enabled": False},
+                ]
+            },
+        ),
     ],
 )
 @pytest.mark.usefixtures("_mock_endpoints")
@@ -955,7 +1122,8 @@ async def test_sub_device_requests(
     unifi_called_with: Callable[[str, str, dict[str, Any]], bool],
     api_request: DeviceSetOutletRelayRequest
     | DeviceSetOutletCycleEnabledRequest
-    | DeviceSetPoePortModeRequest,
+    | DeviceSetPoePortModeRequest
+    | DeviceSetPortEnabledRequest,
     data: dict[str, Any],
     command: dict[str, Any],
 ) -> None:
@@ -972,10 +1140,22 @@ async def test_sub_device_requests(
 @pytest.mark.usefixtures("_mock_endpoints")
 async def test_set_poe_request_raise_error(unifi_controller: Controller) -> None:
     """Test device class."""
-    await unifi_controller.initialize()
+    await unifi_controller.devices.update()
     device = next(iter(unifi_controller.devices.values()))
     with pytest.raises(AttributeError):
         DeviceSetPoePortModeRequest.create(device)
+
+
+@pytest.mark.parametrize(("device_payload"), [[SWITCH_16_PORT_POE]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_set_port_enabled_request_raise_error(
+    unifi_controller: Controller,
+) -> None:
+    """Test device port enable request raises error without proper arguments."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+    with pytest.raises(AttributeError):
+        DeviceSetPortEnabledRequest.create(device)
 
 
 async def test_device_websocket(
@@ -1005,6 +1185,63 @@ async def test_device_websocket(
 def test_enum_unknowns() -> None:
     """Validate enum unknown values."""
     assert DeviceState(999) == DeviceState.UNKNOWN
+    assert DeviceType("future-device-type") == DeviceType.UNKNOWN
+
+
+def test_device_type_enum() -> None:
+    """Validate DeviceType string enum behavior."""
+    assert DeviceType.ACCESS_POINT == "uap"
+    assert DeviceType.SWITCH == "usw"
+    assert str(DeviceType.SECURITY_GATEWAY) == "ugw"
+
+
+@pytest.mark.parametrize(
+    ("raw_band", "expected"),
+    [
+        ("ng", WifiBand.BAND_2_4GHZ),
+        ("na", WifiBand.BAND_5GHZ),
+        ("6e", WifiBand.BAND_6GHZ),
+    ],
+)
+def test_wifi_band_enum_mapping(raw_band: str, expected: WifiBand) -> None:
+    """Verify known WiFi band values map to enum members."""
+    band = WifiBand(raw_band)
+    assert band == expected
+    assert str(band) == raw_band
+
+
+def test_wifi_band_unknown_fallback(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify unknown WiFi band values map to UNKNOWN."""
+    band = WifiBand("future-band")
+    assert band == WifiBand.UNKNOWN
+    assert band == "unknown"
+    assert "Unsupported WiFi band future-band" in caplog.text
+
+
+def test_device_get_radio_band() -> None:
+    """Verify band lookup on Device radio table."""
+    device = Device(
+        {
+            "radio_table": [
+                {"name": "wifi0", "radio": "ng"},
+                {"name": "wifi1", "radio": "na"},
+                {"name": "wifi2", "radio": "6e"},
+                {"name": "wifi3", "radio": "future-band"},
+            ]
+        }
+    )
+
+    assert device.radio_table == [
+        {"name": "wifi0", "radio": "ng"},
+        {"name": "wifi1", "radio": "na"},
+        {"name": "wifi2", "radio": "6e"},
+        {"name": "wifi3", "radio": "future-band"},
+    ]
+    assert device.get_radio_band("wifi0") == WifiBand.BAND_2_4GHZ
+    assert device.get_radio_band("wifi1") == WifiBand.BAND_5GHZ
+    assert device.get_radio_band("wifi2") == WifiBand.BAND_6GHZ
+    assert device.get_radio_band("wifi3") == WifiBand.UNKNOWN
+    assert device.get_radio_band("wifi99") == WifiBand.UNKNOWN
 
 
 @pytest.mark.parametrize(
@@ -1135,3 +1372,145 @@ async def test_led_status_request_exception(
     )
     with pytest.raises(AttributeError):
         DeviceSetLedStatus.create(device, **data)
+
+
+@pytest.mark.parametrize(
+    ("device_payload"),
+    [
+        (
+            [
+                {
+                    "device_id": "01",
+                    "mac": "0",
+                    "locating": False,
+                }
+            ]
+        )
+    ],
+)
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_locate_status_request(
+    mock_aioresponse: aioresponses,
+    unifi_controller: Controller,
+    unifi_called_with: Callable[[str, str, dict[str, Any]], bool],
+    device_payload: list[dict[str, Any]],
+) -> None:
+    """Tests locate status requests and helpers."""
+    devices = unifi_controller.devices
+    await devices.update()
+    device = next(iter(devices.values()))
+    assert device.locating is False
+    assert device.supports_locating
+
+    mock_aioresponse.post("https://host:8443/api/s/default/cmd/devmgr", payload={})
+    await unifi_controller.request(DeviceLocateRequest.create(device.mac, True))
+    assert unifi_called_with(
+        "post",
+        "/api/s/default/cmd/devmgr",
+        json={"cmd": "set-locate", "mac": device.mac},
+    )
+
+
+@pytest.mark.parametrize(("device_payload"), [[GATEWAY_USG3]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_update_stats(unifi_controller: Controller) -> None:
+    """Test device class uptime stats."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.uptime_stats is not None
+    assert len(device.uptime_stats["WAN"].get("monitors")) == 3
+    assert len(device.uptime_stats["WAN2"].get("monitors")) == 3
+
+    assert device.uptime_stats["WAN"].get("monitors")[0].get("availability") == 100.0
+    assert device.uptime_stats["WAN"].get("monitors")[0].get("latency_average") == 5
+    assert (
+        device.uptime_stats["WAN"].get("monitors")[0].get("target")
+        == "www.microsoft.com"
+    )
+    assert device.uptime_stats["WAN"].get("monitors")[0].get("type") == "icmp"
+
+
+@pytest.mark.parametrize(("device_payload"), [[GATEWAY_USG3]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_storage(unifi_controller: Controller) -> None:
+    """Test device class storage."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.storage is not None
+    assert len(device.storage) == 2
+
+    assert device.storage[0]["mount_point"] == "/persistent"
+    assert device.storage[0]["name"] == "Backup"
+    assert device.storage[0]["size"] == 2040373248
+    assert device.storage[0]["type"] == "eMMC"
+    assert device.storage[0]["used"] == 148353024
+
+
+@pytest.mark.parametrize(("device_payload"), [[GATEWAY_USG3]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_temperatures(unifi_controller: Controller) -> None:
+    """Test device class temperatures."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.temperatures is not None
+    assert len(device.temperatures) == 3
+
+    assert device.temperatures[0]["name"] == "CPU"
+    assert device.temperatures[0]["type"] == "cpu"
+    assert device.temperatures[0]["value"] == 66.0
+
+
+@pytest.mark.parametrize(("device_payload"), [[GATEWAY_USG3]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_wan_interfaces(unifi_controller: Controller) -> None:
+    """Test device WAN interface properties."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.wan1 is not None
+    assert device.wan1["ip"] == "1.2.3.4"
+    assert device.wan1["mac"] == "78:8a:20:33:44:55"
+    assert device.wan1["ifname"] == "eth0"
+    assert device.wan1["up"] is True
+    assert device.wan1["speed"] == 1000
+
+    assert device.wan2 is not None
+    assert device.wan2["ip"] == "10.0.0.2"
+    assert device.wan2["mac"] == "78:8a:20:33:44:56"
+    assert device.wan2["ifname"] == "eth1"
+    assert device.wan2["up"] is True
+
+    assert device.wan3 is None
+    assert device.wan4 is None
+    assert device.wan5 is None
+    assert device.wan6 is None
+
+
+@pytest.mark.parametrize(("device_payload"), [[GATEWAY_USG3]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_wan_status(unifi_controller: Controller) -> None:
+    """Test device WAN status and active WAN properties."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.last_wan_status is not None
+    assert device.last_wan_status["WAN"] == "online"
+    assert device.last_wan_status["WAN2"] == "online"
+
+    assert device.last_wan_ip == "1.2.3.4"
+
+
+@pytest.mark.parametrize(("device_payload"), [[ACCESS_POINT_AC_PRO]])
+@pytest.mark.usefixtures("_mock_endpoints")
+async def test_wan_not_present(unifi_controller: Controller) -> None:
+    """Test WAN properties return None for non-gateway devices."""
+    await unifi_controller.devices.update()
+    device = next(iter(unifi_controller.devices.values()))
+
+    assert device.wan1 is None
+    assert device.wan2 is None
+    assert device.last_wan_status is None
+    assert device.last_wan_ip is None
